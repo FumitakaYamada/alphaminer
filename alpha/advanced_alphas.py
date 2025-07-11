@@ -2,13 +2,14 @@ import pandas as pd
 import numpy as np
 from .base_alpha import BaseAlpha
 
+
 class VolatilitySurfaceAlpha(BaseAlpha):
     """Volatility surface arbitrage across different time horizons."""
 
     def __init__(self, short_vol: int = 10, long_vol: int = 30):
         super().__init__(
             name=f"vol_surface_{short_vol}d_{long_vol}d",
-            description=f"Vol surface arbitrage {short_vol}d vs {long_vol}d"
+            description=f"Vol surface arbitrage {short_vol}d vs {long_vol}d",
         )
         self.short_vol = short_vol
         self.long_vol = long_vol
@@ -17,8 +18,8 @@ class VolatilitySurfaceAlpha(BaseAlpha):
         if len(data) < self.long_vol:
             return pd.Series(dtype=float)
 
-        short_vol = data.iloc[-self.short_vol:].std()
-        long_vol = data.iloc[-self.long_vol:].std()
+        short_vol = data.iloc[-self.short_vol :].std()
+        long_vol = data.iloc[-self.long_vol :].std()
 
         # Vol surface slope
         vol_slope = (short_vol - long_vol) / long_vol
@@ -26,13 +27,14 @@ class VolatilitySurfaceAlpha(BaseAlpha):
         # Favor steep negative slopes (short vol < long vol)
         return -vol_slope
 
+
 class FactorMomentumAlpha(BaseAlpha):
     """Multi-factor momentum with exponential decay."""
 
     def __init__(self, lookback: int = 60, decay_rate: float = 0.95):
         super().__init__(
             name=f"factor_momentum_{lookback}d_decay{decay_rate}",
-            description=f"Factor momentum with decay rate {decay_rate}"
+            description=f"Factor momentum with decay rate {decay_rate}",
         )
         self.lookback = lookback
         self.decay_rate = decay_rate
@@ -41,14 +43,17 @@ class FactorMomentumAlpha(BaseAlpha):
         if len(data) < self.lookback:
             return pd.Series(dtype=float)
 
-        recent_data = data.iloc[-self.lookback:]
+        recent_data = data.iloc[-self.lookback :]
 
         # Calculate exponentially weighted momentum
-        weights = np.array([self.decay_rate**i for i in range(self.lookback-1, -1, -1)])
+        weights = np.array(
+            [self.decay_rate**i for i in range(self.lookback - 1, -1, -1)]
+        )
         weights = weights / weights.sum()
 
         weighted_returns = (recent_data.values * weights.reshape(-1, 1)).sum(axis=0)
         return pd.Series(weighted_returns, index=data.columns)
+
 
 class RegimeSwitchingAlpha(BaseAlpha):
     """Market regime detection with adaptive strategies."""
@@ -56,7 +61,7 @@ class RegimeSwitchingAlpha(BaseAlpha):
     def __init__(self, regime_window: int = 60, vol_threshold: float = 0.02):
         super().__init__(
             name=f"regime_switching_{regime_window}d_thresh{vol_threshold}",
-            description=f"Regime switching with {regime_window}d window"
+            description=f"Regime switching with {regime_window}d window",
         )
         self.regime_window = regime_window
         self.vol_threshold = vol_threshold
@@ -65,7 +70,7 @@ class RegimeSwitchingAlpha(BaseAlpha):
         if len(data) < self.regime_window:
             return pd.Series(dtype=float)
 
-        recent_data = data.iloc[-self.regime_window:]
+        recent_data = data.iloc[-self.regime_window :]
         market_vol = recent_data.std().median()
 
         if market_vol > self.vol_threshold:
@@ -77,13 +82,14 @@ class RegimeSwitchingAlpha(BaseAlpha):
 
         return signal
 
+
 class InformationRatioAlpha(BaseAlpha):
     """Risk-adjusted momentum using information ratio."""
 
     def __init__(self, lookback: int = 30, benchmark_period: int = 60):
         super().__init__(
             name=f"info_ratio_{lookback}d_bench{benchmark_period}d",
-            description=f"Information ratio alpha {lookback}d lookback"
+            description=f"Information ratio alpha {lookback}d lookback",
         )
         self.lookback = lookback
         self.benchmark_period = benchmark_period
@@ -93,15 +99,16 @@ class InformationRatioAlpha(BaseAlpha):
             return pd.Series(dtype=float)
 
         # Calculate excess returns vs benchmark
-        returns = data.iloc[-self.lookback:].sum()
-        benchmark_return = data.iloc[-self.benchmark_period:].mean(axis=1).sum()
+        returns = data.iloc[-self.lookback :].sum()
+        benchmark_return = data.iloc[-self.benchmark_period :].mean(axis=1).sum()
         excess_returns = returns - benchmark_return
 
         # Information ratio = excess return / tracking error
-        tracking_error = data.iloc[-self.lookback:].std()
+        tracking_error = data.iloc[-self.lookback :].std()
         info_ratio = excess_returns / tracking_error.replace(0, np.nan)
 
         return info_ratio
+
 
 class LeadLagAlpha(BaseAlpha):
     """Cross-asset lead-lag momentum relationships."""
@@ -109,7 +116,7 @@ class LeadLagAlpha(BaseAlpha):
     def __init__(self, lag_period: int = 3, momentum_period: int = 20):
         super().__init__(
             name=f"lead_lag_{lag_period}d_mom{momentum_period}d",
-            description=f"Lead-lag alpha with {lag_period}d lag"
+            description=f"Lead-lag alpha with {lag_period}d lag",
         )
         self.lag_period = lag_period
         self.momentum_period = momentum_period
@@ -124,16 +131,19 @@ class LeadLagAlpha(BaseAlpha):
 
         for col in data.columns:
             # Correlation between current stock and lagged market
-            stock_current = data[col].iloc[-self.momentum_period:]
-            market_lagged = market.iloc[-self.momentum_period-self.lag_period:-self.lag_period]
+            stock_current = data[col].iloc[-self.momentum_period :]
+            market_lagged = market.iloc[
+                -self.momentum_period - self.lag_period : -self.lag_period
+            ]
 
             if len(stock_current) == len(market_lagged):
-                corr = np.corrcoef(stock_current, market_lagged)[0,1]
+                corr = np.corrcoef(stock_current, market_lagged)[0, 1]
                 signals[col] = corr if not np.isnan(corr) else 0
             else:
                 signals[col] = 0
 
         return pd.Series(signals)
+
 
 class ConditionalVolatilityAlpha(BaseAlpha):
     """GARCH-style conditional volatility prediction."""
@@ -141,7 +151,7 @@ class ConditionalVolatilityAlpha(BaseAlpha):
     def __init__(self, alpha: float = 0.1, beta: float = 0.8):
         super().__init__(
             name=f"conditional_vol_a{alpha}_b{beta}",
-            description=f"Conditional volatility GARCH({alpha}, {beta})"
+            description=f"Conditional volatility GARCH({alpha}, {beta})",
         )
         self.alpha_param = alpha
         self.beta = beta
@@ -156,18 +166,21 @@ class ConditionalVolatilityAlpha(BaseAlpha):
 
             # Simple GARCH(1,1) approximation
             var_long_run = returns.var()
-            current_return_sq = returns.iloc[-1]**2
+            current_return_sq = returns.iloc[-1] ** 2
             prev_vol_sq = returns.iloc[-5:].var()
 
             # Conditional variance
-            cond_var = (1 - self.alpha_param - self.beta) * var_long_run + \
-                      self.alpha_param * current_return_sq + \
-                      self.beta * prev_vol_sq
+            cond_var = (
+                (1 - self.alpha_param - self.beta) * var_long_run
+                + self.alpha_param * current_return_sq
+                + self.beta * prev_vol_sq
+            )
 
             # Signal: inverse of predicted volatility
             signals[col] = 1 / (1 + np.sqrt(cond_var))
 
         return pd.Series(signals)
+
 
 class JumpDetectionAlpha(BaseAlpha):
     """Jump detection and trading strategy."""
@@ -175,7 +188,7 @@ class JumpDetectionAlpha(BaseAlpha):
     def __init__(self, jump_threshold: float = 3.0, lookback: int = 20):
         super().__init__(
             name=f"jump_detection_thresh{jump_threshold}_look{lookback}d",
-            description=f"Jump detection with {jump_threshold} std threshold"
+            description=f"Jump detection with {jump_threshold} std threshold",
         )
         self.jump_threshold = jump_threshold
         self.lookback = lookback
@@ -193,10 +206,12 @@ class JumpDetectionAlpha(BaseAlpha):
         jump_size = current_return / current_std
 
         # Mean revert after jumps
-        jump_signal = np.where(abs(jump_size) > self.jump_threshold,
-                              -np.sign(jump_size), 0)
+        jump_signal = np.where(
+            abs(jump_size) > self.jump_threshold, -np.sign(jump_size), 0
+        )
 
         return pd.Series(jump_signal, index=data.columns)
+
 
 class MicrostructureAlpha(BaseAlpha):
     """Microstructure patterns using high-frequency concepts."""
@@ -204,7 +219,7 @@ class MicrostructureAlpha(BaseAlpha):
     def __init__(self, window: int = 10):
         super().__init__(
             name=f"microstructure_{window}d",
-            description=f"Microstructure patterns {window}d window"
+            description=f"Microstructure patterns {window}d window",
         )
         self.window = window
 
@@ -212,7 +227,7 @@ class MicrostructureAlpha(BaseAlpha):
         if len(data) < self.window + 5:
             return pd.Series(dtype=float)
 
-        recent_data = data.iloc[-self.window:]
+        recent_data = data.iloc[-self.window :]
 
         # Calculate bid-ask spread proxy (volatility)
         spread_proxy = recent_data.std()
@@ -225,13 +240,14 @@ class MicrostructureAlpha(BaseAlpha):
 
         return microstructure_signal
 
+
 class TermStructureAlpha(BaseAlpha):
     """Volatility term structure arbitrage."""
 
     def __init__(self, short_term: int = 5, medium_term: int = 20, long_term: int = 60):
         super().__init__(
             name=f"term_structure_{short_term}d_{medium_term}d_{long_term}d",
-            description=f"Vol term structure {short_term}/{medium_term}/{long_term}d"
+            description=f"Vol term structure {short_term}/{medium_term}/{long_term}d",
         )
         self.short_term = short_term
         self.medium_term = medium_term
@@ -241,9 +257,9 @@ class TermStructureAlpha(BaseAlpha):
         if len(data) < self.long_term:
             return pd.Series(dtype=float)
 
-        short_vol = data.iloc[-self.short_term:].std()
-        medium_vol = data.iloc[-self.medium_term:].std()
-        long_vol = data.iloc[-self.long_term:].std()
+        short_vol = data.iloc[-self.short_term :].std()
+        medium_vol = data.iloc[-self.medium_term :].std()
+        long_vol = data.iloc[-self.long_term :].std()
 
         # Term structure slope
         slope1 = (medium_vol - short_vol) / short_vol
@@ -254,13 +270,14 @@ class TermStructureAlpha(BaseAlpha):
 
         return term_signal
 
+
 class CarryAlpha(BaseAlpha):
     """Statistical carry trade opportunities."""
 
     def __init__(self, lookback: int = 60, carry_window: int = 10):
         super().__init__(
             name=f"carry_{lookback}d_window{carry_window}d",
-            description=f"Carry alpha {lookback}d lookback"
+            description=f"Carry alpha {lookback}d lookback",
         )
         self.lookback = lookback
         self.carry_window = carry_window
@@ -270,13 +287,13 @@ class CarryAlpha(BaseAlpha):
             return pd.Series(dtype=float)
 
         # Calculate expected return (carry)
-        expected_return = data.iloc[-self.lookback:].mean()
+        expected_return = data.iloc[-self.lookback :].mean()
 
         # Calculate volatility (risk)
-        volatility = data.iloc[-self.lookback:].std()
+        volatility = data.iloc[-self.lookback :].std()
 
         # Recent momentum
-        momentum = data.iloc[-self.carry_window:].sum()
+        momentum = data.iloc[-self.carry_window :].sum()
 
         # Carry signal: expected return per unit of risk
         carry_ratio = expected_return / volatility.replace(0, np.nan)
@@ -284,13 +301,14 @@ class CarryAlpha(BaseAlpha):
         # Combine with momentum
         return carry_ratio + 0.3 * momentum
 
+
 class OptionsFlowAlpha(BaseAlpha):
     """Implied options flow from return patterns."""
 
     def __init__(self, lookback: int = 20):
         super().__init__(
             name=f"options_flow_{lookback}d",
-            description=f"Options flow alpha {lookback}d"
+            description=f"Options flow alpha {lookback}d",
         )
         self.lookback = lookback
 
@@ -298,7 +316,7 @@ class OptionsFlowAlpha(BaseAlpha):
         if len(data) < self.lookback + 5:
             return pd.Series(dtype=float)
 
-        recent_data = data.iloc[-self.lookback:]
+        recent_data = data.iloc[-self.lookback :]
 
         # Gamma exposure proxy (convexity)
         returns_sq = recent_data**2
@@ -315,13 +333,14 @@ class OptionsFlowAlpha(BaseAlpha):
 
         return flow_signal
 
+
 class CrossSectionalDispersionAlpha(BaseAlpha):
     """Cross-sectional dispersion trading strategy."""
 
     def __init__(self, lookback: int = 30):
         super().__init__(
             name=f"cs_dispersion_{lookback}d",
-            description=f"Cross-sectional dispersion {lookback}d"
+            description=f"Cross-sectional dispersion {lookback}d",
         )
         self.lookback = lookback
 
@@ -329,7 +348,7 @@ class CrossSectionalDispersionAlpha(BaseAlpha):
         if len(data) < self.lookback:
             return pd.Series(dtype=float)
 
-        recent_data = data.iloc[-self.lookback:]
+        recent_data = data.iloc[-self.lookback :]
 
         # Calculate cross-sectional dispersion
         daily_std = recent_data.std(axis=1)
@@ -352,13 +371,14 @@ class CrossSectionalDispersionAlpha(BaseAlpha):
 
         return signal
 
+
 class EconomicSurpriseAlpha(BaseAlpha):
     """Economic surprise reaction strategy."""
 
     def __init__(self, surprise_window: int = 5, reaction_window: int = 15):
         super().__init__(
             name=f"econ_surprise_{surprise_window}d_{reaction_window}d",
-            description=f"Economic surprise reaction {surprise_window}/{reaction_window}d"
+            description=f"Economic surprise reaction {surprise_window}/{reaction_window}d",
         )
         self.surprise_window = surprise_window
         self.reaction_window = reaction_window
@@ -371,19 +391,22 @@ class EconomicSurpriseAlpha(BaseAlpha):
         market_returns = data.mean(axis=1)
         surprise_threshold = market_returns.std() * 2
 
-        recent_market = market_returns.iloc[-self.surprise_window:]
+        recent_market = market_returns.iloc[-self.surprise_window :]
         large_moves = abs(recent_market) > surprise_threshold
 
         if large_moves.any():
             # Surprise detected: fade the move
             surprise_direction = np.sign(recent_market[large_moves].iloc[-1])
-            individual_moves = data.iloc[-self.surprise_window:].sum()
-            signal = -surprise_direction * individual_moves / abs(individual_moves).sum()
+            individual_moves = data.iloc[-self.surprise_window :].sum()
+            signal = (
+                -surprise_direction * individual_moves / abs(individual_moves).sum()
+            )
         else:
             # No surprise: neutral
             signal = pd.Series(0.0, index=data.columns)
 
         return signal
+
 
 class SentimentReversalAlpha(BaseAlpha):
     """Contrarian sentiment strategy."""
@@ -391,7 +414,7 @@ class SentimentReversalAlpha(BaseAlpha):
     def __init__(self, sentiment_window: int = 20, extreme_threshold: float = 1.5):
         super().__init__(
             name=f"sentiment_reversal_{sentiment_window}d_thresh{extreme_threshold}",
-            description=f"Sentiment reversal {sentiment_window}d window"
+            description=f"Sentiment reversal {sentiment_window}d window",
         )
         self.sentiment_window = sentiment_window
         self.extreme_threshold = extreme_threshold
@@ -400,12 +423,16 @@ class SentimentReversalAlpha(BaseAlpha):
         if len(data) < self.sentiment_window + 10:
             return pd.Series(dtype=float)
 
-        recent_data = data.iloc[-self.sentiment_window:]
+        recent_data = data.iloc[-self.sentiment_window :]
 
         # Sentiment proxy: cumulative returns z-score
         cum_returns = recent_data.sum()
-        long_term_mean = data.iloc[-60:].sum().mean() if len(data) >= 60 else cum_returns.mean()
-        long_term_std = data.iloc[-60:].sum().std() if len(data) >= 60 else cum_returns.std()
+        long_term_mean = (
+            data.iloc[-60:].sum().mean() if len(data) >= 60 else cum_returns.mean()
+        )
+        long_term_std = (
+            data.iloc[-60:].sum().std() if len(data) >= 60 else cum_returns.std()
+        )
 
         sentiment_zscore = (cum_returns - long_term_mean) / long_term_std
 
@@ -416,13 +443,14 @@ class SentimentReversalAlpha(BaseAlpha):
 
         return signals
 
+
 class MomentumCrashAlpha(BaseAlpha):
     """Momentum crash protection strategy."""
 
     def __init__(self, momentum_window: int = 60, crash_threshold: float = -0.1):
         super().__init__(
             name=f"momentum_crash_{momentum_window}d_thresh{crash_threshold}",
-            description=f"Momentum crash protection {momentum_window}d"
+            description=f"Momentum crash protection {momentum_window}d",
         )
         self.momentum_window = momentum_window
         self.crash_threshold = crash_threshold
@@ -432,7 +460,7 @@ class MomentumCrashAlpha(BaseAlpha):
             return pd.Series(dtype=float)
 
         # Calculate momentum
-        momentum = data.iloc[-self.momentum_window:].sum()
+        momentum = data.iloc[-self.momentum_window :].sum()
 
         # Detect crash conditions (large negative market move)
         market_return = data.mean(axis=1).iloc[-5:].sum()
@@ -449,13 +477,14 @@ class MomentumCrashAlpha(BaseAlpha):
 
         return signal
 
+
 class VolatilityClusteringAlpha(BaseAlpha):
     """Volatility clustering exploitation."""
 
     def __init__(self, cluster_window: int = 10, vol_threshold: float = 2.0):
         super().__init__(
             name=f"vol_clustering_{cluster_window}d_thresh{vol_threshold}",
-            description=f"Volatility clustering {cluster_window}d window"
+            description=f"Volatility clustering {cluster_window}d window",
         )
         self.cluster_window = cluster_window
         self.vol_threshold = vol_threshold
@@ -466,7 +495,9 @@ class VolatilityClusteringAlpha(BaseAlpha):
 
         # Detect volatility clusters
         recent_vol = data.rolling(self.cluster_window).std()
-        long_term_vol = data.rolling(60).std().iloc[-1] if len(data) >= 60 else recent_vol.iloc[-1]
+        long_term_vol = (
+            data.rolling(60).std().iloc[-1] if len(data) >= 60 else recent_vol.iloc[-1]
+        )
 
         current_vol = recent_vol.iloc[-1]
         vol_ratio = current_vol / long_term_vol
@@ -486,13 +517,14 @@ class VolatilityClusteringAlpha(BaseAlpha):
 
         return signal
 
+
 class AsymmetricRiskAlpha(BaseAlpha):
     """Asymmetric upside vs downside risk strategy."""
 
     def __init__(self, lookback: int = 30):
         super().__init__(
             name=f"asymmetric_risk_{lookback}d",
-            description=f"Asymmetric risk alpha {lookback}d"
+            description=f"Asymmetric risk alpha {lookback}d",
         )
         self.lookback = lookback
 
@@ -500,7 +532,7 @@ class AsymmetricRiskAlpha(BaseAlpha):
         if len(data) < self.lookback:
             return pd.Series(dtype=float)
 
-        recent_data = data.iloc[-self.lookback:]
+        recent_data = data.iloc[-self.lookback :]
 
         # Separate upside and downside moves
         upside_returns = recent_data[recent_data > 0]
@@ -511,10 +543,13 @@ class AsymmetricRiskAlpha(BaseAlpha):
         downside_vol = downside_returns.abs().std().fillna(0)
 
         # Asymmetry ratio
-        asymmetry = (upside_vol - downside_vol) / (upside_vol + downside_vol).replace(0, np.nan)
+        asymmetry = (upside_vol - downside_vol) / (upside_vol + downside_vol).replace(
+            0, np.nan
+        )
 
         # Favor assets with positive asymmetry (more upside vol)
         return asymmetry.fillna(0)
+
 
 class LiquidityAlpha(BaseAlpha):
     """Liquidity-based mean reversion strategy."""
@@ -522,7 +557,7 @@ class LiquidityAlpha(BaseAlpha):
     def __init__(self, liquidity_window: int = 20):
         super().__init__(
             name=f"liquidity_{liquidity_window}d",
-            description=f"Liquidity alpha {liquidity_window}d"
+            description=f"Liquidity alpha {liquidity_window}d",
         )
         self.liquidity_window = liquidity_window
 
@@ -530,7 +565,7 @@ class LiquidityAlpha(BaseAlpha):
         if len(data) < self.liquidity_window + 10:
             return pd.Series(dtype=float)
 
-        recent_data = data.iloc[-self.liquidity_window:]
+        recent_data = data.iloc[-self.liquidity_window :]
 
         # Liquidity proxy: inverse of return volatility
         liquidity = 1 / (recent_data.std() + 1e-6)
@@ -545,13 +580,14 @@ class LiquidityAlpha(BaseAlpha):
 
         return signal
 
+
 class CrossFrequencyAlpha(BaseAlpha):
     """Multi-timeframe signal aggregation."""
 
     def __init__(self, short: int = 5, medium: int = 20, long: int = 60):
         super().__init__(
             name=f"cross_frequency_{short}d_{medium}d_{long}d",
-            description=f"Cross-frequency {short}/{medium}/{long}d"
+            description=f"Cross-frequency {short}/{medium}/{long}d",
         )
         self.short = short
         self.medium = medium
@@ -562,16 +598,15 @@ class CrossFrequencyAlpha(BaseAlpha):
             return pd.Series(dtype=float)
 
         # Signals from different timeframes
-        short_signal = data.iloc[-self.short:].sum()
-        medium_signal = data.iloc[-self.medium:].sum() / (self.medium / self.short)
-        long_signal = data.iloc[-self.long:].sum() / (self.long / self.short)
+        short_signal = data.iloc[-self.short :].sum()
+        medium_signal = data.iloc[-self.medium :].sum() / (self.medium / self.short)
+        long_signal = data.iloc[-self.long :].sum() / (self.long / self.short)
 
         # Weighted combination
-        combined_signal = (0.5 * short_signal +
-                          0.3 * medium_signal +
-                          0.2 * long_signal)
+        combined_signal = 0.5 * short_signal + 0.3 * medium_signal + 0.2 * long_signal
 
         return combined_signal
+
 
 class AdaptiveSignalAlpha(BaseAlpha):
     """Adaptive signal using ensemble methods."""
@@ -579,7 +614,7 @@ class AdaptiveSignalAlpha(BaseAlpha):
     def __init__(self, adapt_window: int = 60):
         super().__init__(
             name=f"adaptive_signal_{adapt_window}d",
-            description=f"Adaptive signal {adapt_window}d"
+            description=f"Adaptive signal {adapt_window}d",
         )
         self.adapt_window = adapt_window
 
@@ -593,7 +628,7 @@ class AdaptiveSignalAlpha(BaseAlpha):
         vol_signal = 1 / (data.iloc[-15:].std() + 1e-6)
 
         # Recent market regime
-        market_vol = data.std(axis=1).iloc[-self.adapt_window:].mean()
+        market_vol = data.std(axis=1).iloc[-self.adapt_window :].mean()
 
         # Adaptive weights based on market regime
         if market_vol > 0.02:
@@ -604,8 +639,8 @@ class AdaptiveSignalAlpha(BaseAlpha):
             weights = [0.6, 0.2, 0.2]
 
         # Combine signals
-        adaptive_signal = (weights[0] * momentum +
-                          weights[1] * mean_revert +
-                          weights[2] * vol_signal)
+        adaptive_signal = (
+            weights[0] * momentum + weights[1] * mean_revert + weights[2] * vol_signal
+        )
 
         return adaptive_signal

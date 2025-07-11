@@ -490,7 +490,7 @@ class VolatilityClusteringBreakout(BaseAlpha):
 
         # Breakout detection
         recent_returns = data.iloc[-3:].sum()
-        return_magnitude = abs(recent_returns)
+        abs(recent_returns)
 
         # Enhanced breakout signal
         breakout_condition = vol_ratio > self.breakout_threshold

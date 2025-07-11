@@ -292,7 +292,7 @@ class CorrelationBreakdownAlpha(BaseAlpha):
 
         # Correlation breakdown score
         signals = {}
-        market_return = current_data.mean(axis=1).sum()
+        current_data.mean(axis=1).sum()
 
         for col in data.columns:
             # How much has this asset's correlation with others changed?

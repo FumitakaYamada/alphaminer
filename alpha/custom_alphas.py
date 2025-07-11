@@ -113,7 +113,7 @@ class MomentumBreakdownDetection(BaseAlpha):
             return pd.Series(dtype=float)
 
         # Calculate short and long term momentum
-        short_momentum = data.iloc[-self.short_period :].sum()
+        data.iloc[-self.short_period :].sum()
         long_momentum = data.iloc[-self.long_period :].sum()
 
         # Calculate trend consistency for short period

@@ -508,7 +508,7 @@ class HiddenMarkovModel(BaseAlpha):
             return np.zeros(n_obs)
 
         # Simple state transition probabilities
-        trans_prob = np.ones((self.n_states, self.n_states)) / self.n_states
+        np.ones((self.n_states, self.n_states)) / self.n_states
 
         # Emission probabilities based on return magnitude
         states = np.zeros(n_obs)

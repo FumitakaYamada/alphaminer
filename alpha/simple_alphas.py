@@ -69,7 +69,7 @@ class VolatilityRank(BaseAlpha):
             return pd.Series(dtype=float)
 
         # Calculate current volatility
-        current_vol = data.iloc[-self.vol_period :].std()
+        data.iloc[-self.vol_period :].std()
 
         # Calculate historical volatility ranks
         hist_data = data.iloc[-self.rank_period :]
@@ -265,7 +265,7 @@ class SeasonalTrend(BaseAlpha):
             return pd.Series(dtype=float)
 
         # Compare current 5-day return to same period last year
-        current_5d = data.iloc[-5:].sum()
+        data.iloc[-5:].sum()
 
         # Same 5-day period last year (approximately)
         year_ago_5d = data.iloc[-(self.days_back + 5) : -(self.days_back)].sum()

@@ -205,7 +205,7 @@ class LiquidityStressAlpha(BaseAlpha):
         stress_returns = stress_data.sum()
 
         # Combined stress score
-        stress_score = stress_vol * np.maximum(
+        stress_vol * np.maximum(
             -stress_returns, 0
         )  # Only negative returns
 
@@ -243,7 +243,7 @@ class EarningsSurpriseMomentum(BaseAlpha):
 
         # Find recent large moves (proxy for earnings)
         surprise_data = recent_data.iloc[-self.surprise_period :]
-        large_moves = surprise_data.abs() > vol_threshold
+        surprise_data.abs() > vol_threshold
 
         # Calculate surprise magnitude and direction
         surprise_magnitude = surprise_data.abs().max()

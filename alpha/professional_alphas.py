@@ -73,7 +73,7 @@ class VolatilityClusteringPredictor(BaseAlpha):
 
         # Detect volatility clustering
         vol_increases = (recent_vol.diff() > 0).sum()
-        vol_decreases = (recent_vol.diff() < 0).sum()
+        (recent_vol.diff() < 0).sum()
 
         # Clustering score
         clustering_score = vol_increases / self.vol_window
@@ -128,7 +128,7 @@ class CrossSectionalMeanReversionSpeed(BaseAlpha):
         )
 
         # Cross-sectional ranking of autocorrelation
-        autocorr_rank = autocorr_series.rank(pct=True)
+        autocorr_series.rank(pct=True)
 
         # Distance from cross-sectional mean
         returns_sum = recent_data.sum()
@@ -222,7 +222,7 @@ class MomentumQualityScore(BaseAlpha):
         # Quality 3: No extreme outliers (robust momentum)
         q75 = recent_data.quantile(0.75)
         q25 = recent_data.quantile(0.25)
-        iqr_momentum = recent_data[(recent_data >= q25) & (recent_data <= q75)].sum()
+        recent_data[(recent_data >= q25) & (recent_data <= q75)].sum()
 
         # Combined quality score
         quality_score = (consistency + stability) / 2
